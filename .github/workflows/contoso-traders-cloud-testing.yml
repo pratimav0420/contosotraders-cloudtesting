@@ -565,7 +565,6 @@ jobs:
 
   load-tests-carts-internal-api:
     if: false  # Skipping load tests
-    if: ${{ vars.DEPLOYPRIVATEENDPOINTS == 'true' }}
     needs: [provision, playwright-tests-ui]
     runs-on: ubuntu-22.04
     concurrency:
