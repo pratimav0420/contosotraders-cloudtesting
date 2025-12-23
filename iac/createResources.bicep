@@ -286,7 +286,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     tags: resourceTags
     properties: {
       contentType: 'endpoint url of the images storage account'
-      value: imgstgacc.properties.primaryEndpoints.blob
+      value: productimagesstgacc.properties.primaryEndpoints.blob
     }
   }
 
