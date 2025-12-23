@@ -875,6 +875,7 @@ resource uistgacc_blobDataOwnerRole 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+/*
 resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript'
   location: resourceLocation
@@ -907,6 +908,7 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     ]
   }
 }
+*/
 
 // Role assignments for blob data access using managed identity instead of keys
 resource productimagesstgacc_blobDataReaderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -1011,6 +1013,7 @@ resource ui2stgacc_blobDataOwnerRole 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
+/*
 resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript2'
   location: resourceLocation
@@ -1043,6 +1046,7 @@ resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
     ]
   }
 }
+*/
 
 //
 // image classifier
@@ -1087,7 +1091,7 @@ resource cdnprofile 'Microsoft.Cdn/profiles@2022-11-01-preview' = {
   location: 'global'
   tags: resourceTags
   sku: {
-    name: 'Standard_Microsoft'
+    name: 'Standard_AzureFrontDoor'
   }
 }
 
