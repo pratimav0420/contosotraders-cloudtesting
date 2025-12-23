@@ -487,7 +487,7 @@ resource productsapiappsvcplan 'Microsoft.Web/serverfarms@2022-03-01' = {
   location: resourceLocation
   tags: resourceTags
   sku: {
-    name: 'S1'
+    name: 'F1'
   }
   properties: {
     reserved: true
