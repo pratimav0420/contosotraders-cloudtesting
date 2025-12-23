@@ -226,7 +226,26 @@ jobs:
           
           # Get access token for Azure SQL
           echo "Getting Azure SQL access token..."
-          export SQLCMDPASSWORD=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
+          
+          # Debug: Check Azure CLI authentication
+          echo "Current Azure CLI account:"
+          az account show --query "[name, id, user.name]" -o table || echo "Azure CLI not authenticated"
+          
+          # Get access token and validate it
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
+          
+          # Debug: Check token length (should be several hundred characters for JWT)
+          echo "Access token length: ${#ACCESS_TOKEN}"
+          
+          # Validate token format (should start with 'ey' for JWT)
+          if [[ $ACCESS_TOKEN == ey* ]] && [[ ${#ACCESS_TOKEN} -gt 100 ]]; then
+            echo "Valid access token received"
+            export SQLCMDPASSWORD="$ACCESS_TOKEN"
+          else
+            echo "Error: Invalid access token received: $ACCESS_TOKEN"
+            echo "This usually indicates Azure CLI authentication issues"
+            exit 1
+          fi
           
           # Create managed identity user and grant permissions
           echo "Setting up managed identity user in products database..."
@@ -295,7 +314,26 @@ jobs:
           
           # Get access token for Azure SQL
           echo "Getting Azure SQL access token..."
-          export SQLCMDPASSWORD=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
+          
+          # Debug: Check Azure CLI authentication
+          echo "Current Azure CLI account:"
+          az account show --query "[name, id, user.name]" -o table || echo "Azure CLI not authenticated"
+          
+          # Get access token and validate it
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
+          
+          # Debug: Check token length (should be several hundred characters for JWT)
+          echo "Access token length: ${#ACCESS_TOKEN}"
+          
+          # Validate token format (should start with 'ey' for JWT)
+          if [[ $ACCESS_TOKEN == ey* ]] && [[ ${#ACCESS_TOKEN} -gt 100 ]]; then
+            echo "Valid access token received"
+            export SQLCMDPASSWORD="$ACCESS_TOKEN"
+          else
+            echo "Error: Invalid access token received: $ACCESS_TOKEN"
+            echo "This usually indicates Azure CLI authentication issues"
+            exit 1
+          fi
           
           # Create managed identity user and grant permissions for profiles database
           echo "Setting up managed identity user in profiles database..."
