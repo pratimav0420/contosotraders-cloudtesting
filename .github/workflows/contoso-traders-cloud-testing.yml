@@ -224,19 +224,23 @@ jobs:
           # Add sqlcmd to PATH
           export PATH="$PATH:/opt/mssql-tools/bin"
           
+          # Get access token for Azure SQL and write to file
+          echo "Getting Azure SQL access token..."
+          az account get-access-token --resource https://database.windows.net --query accessToken -o tsv > /tmp/sql_token.txt
+          
           # Create managed identity user and grant permissions
           echo "Setting up managed identity user in products database..."
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G \
+            -G -P "$(cat /tmp/sql_token.txt)" \
             -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
             -b
           
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G \
+            -G -P "$(cat /tmp/sql_token.txt)" \
             -Q "ALTER ROLE db_datareader ADD MEMBER [$miName]; ALTER ROLE db_datawriter ADD MEMBER [$miName]; ALTER ROLE db_ddladmin ADD MEMBER [$miName];" \
             -b
           
@@ -245,9 +249,12 @@ jobs:
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G \
+            -G -P "$(cat /tmp/sql_token.txt)" \
             -i ./src/ContosoTraders.Api.Products/Migration/productsdb.sql \
             -b
+          
+          # Clean up token file
+          rm -f /tmp/sql_token.txt
           
           # Clean up: Remove the temporary firewall rule
           echo "Cleaning up temporary firewall rule..."
@@ -286,21 +293,28 @@ jobs:
             --end-ip-address $clientIp \
             --only-show-errors
           
+          # Get access token for Azure SQL and write to file
+          echo "Getting Azure SQL access token..."
+          az account get-access-token --resource https://database.windows.net --query accessToken -o tsv > /tmp/sql_token_profiles.txt
+          
           # Create managed identity user and grant permissions for profiles database
           echo "Setting up managed identity user in profiles database..."
           sqlcmd \
             -S ${{ env.PROFILES_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PROFILES_DB_NAME }} \
-            -G \
+            -G -P "$(cat /tmp/sql_token_profiles.txt)" \
             -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
             -b
           
           sqlcmd \
             -S ${{ env.PROFILES_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PROFILES_DB_NAME }} \
-            -G \
+            -G -P "$(cat /tmp/sql_token_profiles.txt)" \
             -Q "ALTER ROLE db_datareader ADD MEMBER [$miName]; ALTER ROLE db_datawriter ADD MEMBER [$miName]; ALTER ROLE db_ddladmin ADD MEMBER [$miName];" \
             -b
+          
+          # Clean up token file
+          rm -f /tmp/sql_token_profiles.txt
           
           # Clean up: Remove the temporary firewall rule
           echo "Cleaning up temporary firewall rule..."
