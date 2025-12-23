@@ -31,6 +31,7 @@ param sqlServerHostName string = environment().suffixes.sqlServerHostname
 
 // use param to conditionally deploy private endpoint resources
 param deployPrivateEndpoints bool = false
+param deployAks bool = false
 
 // variables
 ////////////////////////////////////////////////////////////////////////////////
@@ -326,7 +327,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     properties: {
       // @TODO: I was unable to figure out how to assign an access policy to the AKS cluster's agent pool's managed identity.
       // Hence, that specific access policy will be assigned from a github workflow (using AZ CLI).
-      accessPolicies: [
+      accessPolicies: deployAks ? [
         {
           tenantId: tenantId
           objectId: userassignedmiforkvaccess.properties.principalId
@@ -337,6 +338,14 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
         {
           tenantId: tenantId
           objectId: aks.properties.identityProfile.kubeletidentity.objectId
+          permissions: {
+            secrets: ['get', 'list']
+          }
+        }
+      ] : [
+        {
+          tenantId: tenantId
+          objectId: userassignedmiforkvaccess.properties.principalId
           permissions: {
             secrets: ['get', 'list']
           }
@@ -1290,7 +1299,8 @@ resource dashboard 'Microsoft.Portal/dashboards@2020-09-01-preview' = {
 // aks cluster
 //
 
-resource aks 'Microsoft.ContainerService/managedClusters@2022-10-02-preview' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2022-10-02-preview' =
+  if (deployAks) {
   name: aksClusterName
   location: resourceLocation
   tags: resourceTags
@@ -1330,7 +1340,8 @@ resource aks_roledefinitionforchaosexp 'Microsoft.Authorization/roleDefinitions@
   name: '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8'
 }
 
-resource aks_roleassignmentforchaosexp 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource aks_roleassignmentforchaosexp 'Microsoft.Authorization/roleAssignments@2022-04-01' =
+  if (deployAks) {
   scope: aks
   name: guid(aks.id, chaosaksexperiment.id, aks_roledefinitionforchaosexp.id)
   properties: {
