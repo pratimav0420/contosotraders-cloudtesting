@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "17297153186194082857"
+      "templateHash": "14675487262908685788"
     }
   },
   "parameters": {
@@ -20,13 +20,6 @@
     "resourceLocation": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
-    },
-    "jumpboxAdminPassword": {
-      "type": "securestring",
-      "defaultValue": "TempPassword123!",
-      "metadata": {
-        "description": "Password for the jumpbox VM (only used when deployPrivateEndpoints is true)"
-      }
     },
     "tenantId": {
       "type": "string",
@@ -83,10 +76,8 @@
     "productsApiSettingNameManagedIdentityClientId": "ManagedIdentityClientId",
     "productsDbServerName": "[format('{0}-products{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "productsDbName": "productsdb",
-    "productsDbServerAdminLogin": "localadmin",
     "profilesDbServerName": "[format('{0}-profiles{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "profilesDbName": "profilesdb",
-    "profilesDbServerAdminLogin": "localadmin",
     "cartsApiAcaName": "[format('{0}-carts{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "cartsApiAcaEnvName": "[format('{0}acaenv{1}', parameters('prefix'), parameters('suffix'))]",
     "cartsApiAcaSecretAcrPassword": "acr-password",
@@ -126,14 +117,6 @@
     "vnetVmSubnetAddressPrefix": "10.0.2.0/23",
     "vnetLoadTestSubnetName": "subnet-loadtest",
     "vnetLoadTestSubnetAddressPrefix": "10.0.4.0/23",
-    "jumpboxPublicIpName": "[format('{0}-jumpbox{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
-    "jumpboxNsgName": "[format('{0}-jumpbox{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
-    "jumpboxNicName": "[format('{0}-jumpbox{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
-    "jumpboxVmName": "jumpboxvm",
-    "jumpboxVmAdminLogin": "localadmin",
-    "jumpboxVmAdminPassword": "[parameters('jumpboxAdminPassword')]",
-    "jumpboxVmShutdownSchduleName": "shutdown-computevm-jumpboxvm",
-    "jumpboxVmShutdownScheduleTimezoneId": "UTC",
     "privateDnsZoneVnetLinkName": "[format('{0}-privatednszone-vnet-link{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "chaosKvExperimentName": "[format('{0}-chaos-kv-experiment{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "chaosKvSelectorId": "[guid(format('{0}-chaos-kv-selector-id{1}', parameters('prefixHyphenated'), parameters('suffix')))]",
@@ -1270,149 +1253,6 @@
           }
         ]
       }
-    },
-    {
-      "condition": "[parameters('deployPrivateEndpoints')]",
-      "type": "Microsoft.Network/publicIPAddresses",
-      "apiVersion": "2022-07-01",
-      "name": "[variables('jumpboxPublicIpName')]",
-      "location": "[parameters('resourceLocation')]",
-      "tags": "[variables('resourceTags')]",
-      "sku": {
-        "name": "Standard",
-        "tier": "Regional"
-      },
-      "properties": {
-        "deleteOption": "Delete",
-        "publicIPAllocationMethod": "Static"
-      }
-    },
-    {
-      "condition": "[parameters('deployPrivateEndpoints')]",
-      "type": "Microsoft.Network/networkSecurityGroups",
-      "apiVersion": "2022-07-01",
-      "name": "[variables('jumpboxNsgName')]",
-      "location": "[parameters('resourceLocation')]",
-      "tags": "[variables('resourceTags')]",
-      "properties": {
-        "securityRules": [
-          {
-            "name": "allow-rdp-port-3389",
-            "properties": {
-              "access": "Allow",
-              "destinationAddressPrefix": "VirtualNetwork",
-              "destinationPortRange": "3389",
-              "direction": "Inbound",
-              "priority": 300,
-              "protocol": "*",
-              "sourceAddressPrefix": "*",
-              "sourcePortRange": "*"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "condition": "[parameters('deployPrivateEndpoints')]",
-      "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2022-07-01",
-      "name": "[variables('jumpboxNicName')]",
-      "location": "[parameters('resourceLocation')]",
-      "tags": "[variables('resourceTags')]",
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "nic-ip-config",
-            "properties": {
-              "primary": true,
-              "privateIPAllocationMethod": "Dynamic",
-              "subnet": {
-                "id": "[if(parameters('deployPrivateEndpoints'), reference(resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')), '2022-07-01').subnets[1].id, '')]"
-              },
-              "publicIPAddress": {
-                "id": "[if(parameters('deployPrivateEndpoints'), resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxPublicIpName')), '')]"
-              }
-            }
-          }
-        ],
-        "networkSecurityGroup": {
-          "id": "[if(parameters('deployPrivateEndpoints'), resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpboxNsgName')), '')]"
-        },
-        "nicType": "Standard"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpboxNsgName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxPublicIpName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('deployPrivateEndpoints')]",
-      "type": "Microsoft.Compute/virtualMachines",
-      "apiVersion": "2022-08-01",
-      "name": "[variables('jumpboxVmName')]",
-      "location": "[parameters('resourceLocation')]",
-      "tags": "[variables('resourceTags')]",
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "Standard_B1s"
-        },
-        "storageProfile": {
-          "osDisk": {
-            "createOption": "FromImage",
-            "managedDisk": {
-              "storageAccountType": "StandardSSD_LRS"
-            }
-          },
-          "imageReference": {
-            "offer": "WindowsServer",
-            "publisher": "MicrosoftWindowsServer",
-            "sku": "2019-datacenter-gensecond",
-            "version": "latest"
-          }
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[if(parameters('deployPrivateEndpoints'), resourceId('Microsoft.Network/networkInterfaces', variables('jumpboxNicName')), '')]",
-              "properties": {
-                "deleteOption": "Delete"
-              }
-            }
-          ]
-        },
-        "osProfile": {
-          "adminPassword": "[variables('jumpboxVmAdminPassword')]",
-          "adminUsername": "[variables('jumpboxVmAdminLogin')]",
-          "computerName": "[variables('jumpboxVmName')]"
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', variables('jumpboxNicName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('deployPrivateEndpoints')]",
-      "type": "Microsoft.DevTestLab/schedules",
-      "apiVersion": "2018-09-15",
-      "name": "[variables('jumpboxVmShutdownSchduleName')]",
-      "location": "[parameters('resourceLocation')]",
-      "tags": "[variables('resourceTags')]",
-      "properties": {
-        "targetResourceId": "[if(parameters('deployPrivateEndpoints'), resourceId('Microsoft.Compute/virtualMachines', variables('jumpboxVmName')), '')]",
-        "dailyRecurrence": {
-          "time": "2100"
-        },
-        "notificationSettings": {
-          "status": "Disabled"
-        },
-        "status": "Enabled",
-        "taskType": "ComputeVmShutdownTask",
-        "timeZoneId": "[variables('jumpboxVmShutdownScheduleTimezoneId')]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', variables('jumpboxVmName'))]"
-      ]
     },
     {
       "condition": "[parameters('deployPrivateEndpoints')]",
