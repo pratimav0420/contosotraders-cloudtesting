@@ -285,8 +285,8 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     name: kvSecretNameImagesEndpoint
     tags: resourceTags
     properties: {
-      contentType: 'endpoint url of the images cdn'
-      value: 'https://${cdnprofile_imagesendpoint.properties.hostName}'
+      contentType: 'endpoint url of the images storage account'
+      value: imgstgacc.properties.primaryEndpoints.blob
     }
   }
 
@@ -305,8 +305,8 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     name: kvSecretNameUiCdnEndpoint
     tags: resourceTags
     properties: {
-      contentType: 'endpoint url (cdn endpoint) of the ui'
-      value: cdnprofile_ui2endpoint.properties.hostName
+      contentType: 'endpoint url of the ui storage account'
+      value: ui2stgacc.properties.primaryEndpoints.web
     }
   }
 
@@ -1095,250 +1095,41 @@ resource cdnprofile 'Microsoft.Cdn/profiles@2022-11-01-preview' = {
   }
 }
 
-// endpoint (product images)
-resource cdnprofile_imagesendpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
+// endpoint (product images) - commented out
+/*
+resource cdnprofile_imagesendpoint 'Microsoft.Cdn/profiles/afdEndpoints@2022-11-01-preview' = {
   name: cdnImagesEndpointName
   location: 'global'
-  tags: resourceTags
   parent: cdnprofile
   properties: {
-    isCompressionEnabled: true
-    contentTypesToCompress: [
-      'image/svg+xml'
-    ]
-    deliveryPolicy: {
-      rules: [
-        {
-          name: 'Global'
-          order: 0
-          actions: [
-            {
-              name: 'CacheExpiration'
-              parameters: {
-                typeName: 'DeliveryRuleCacheExpirationActionParameters'
-                cacheBehavior: 'SetIfMissing'
-                cacheType: 'All'
-                cacheDuration: '10:00:00'
-              }
-            }
-          ]
-        }
-      ]
-    }
-    originHostHeader: replace(replace(productimagesstgacc.properties.primaryEndpoints.blob, 'https://', ''), '/', '')
-    origins: [
-      {
-        name: replace(
-          replace(replace(productimagesstgacc.properties.primaryEndpoints.blob, 'https://', ''), '/', ''),
-          '.',
-          '-'
-        )
-        properties: {
-          hostName: replace(replace(productimagesstgacc.properties.primaryEndpoints.blob, 'https://', ''), '/', '')
-          originHostHeader: replace(
-            replace(productimagesstgacc.properties.primaryEndpoints.blob, 'https://', ''),
-            '/',
-            ''
-          )
-        }
-      }
-    ]
+    enabledState: 'Enabled'
   }
 }
+*/
 
-// endpoint (ui / old website)
-resource cdnprofile_uiendpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
+// endpoint (ui / old website) - commented out
+/*
+resource cdnprofile_uiendpoint 'Microsoft.Cdn/profiles/afdEndpoints@2022-11-01-preview' = {
   name: cdnUiEndpointName
   location: 'global'
-  tags: resourceTags
   parent: cdnprofile
   properties: {
-    isCompressionEnabled: true
-    contentTypesToCompress: [
-      'application/eot'
-      'application/font'
-      'application/font-sfnt'
-      'application/javascript'
-      'application/json'
-      'application/opentype'
-      'application/otf'
-      'application/pkcs7-mime'
-      'application/truetype'
-      'application/ttf'
-      'application/vnd.ms-fontobject'
-      'application/xhtml+xml'
-      'application/xml'
-      'application/xml+rss'
-      'application/x-font-opentype'
-      'application/x-font-truetype'
-      'application/x-font-ttf'
-      'application/x-httpd-cgi'
-      'application/x-javascript'
-      'application/x-mpegurl'
-      'application/x-opentype'
-      'application/x-otf'
-      'application/x-perl'
-      'application/x-ttf'
-      'font/eot'
-      'font/ttf'
-      'font/otf'
-      'font/opentype'
-      'image/svg+xml'
-      'text/css'
-      'text/csv'
-      'text/html'
-      'text/javascript'
-      'text/js'
-      'text/plain'
-      'text/richtext'
-      'text/tab-separated-values'
-      'text/xml'
-      'text/x-script'
-      'text/x-component'
-      'text/x-java-source'
-    ]
-    deliveryPolicy: {
-      rules: [
-        {
-          name: 'Global'
-          order: 0
-          actions: [
-            {
-              name: 'CacheExpiration'
-              parameters: {
-                typeName: 'DeliveryRuleCacheExpirationActionParameters'
-                cacheBehavior: 'SetIfMissing'
-                cacheType: 'All'
-                cacheDuration: '10:00:00'
-              }
-            }
-          ]
-        }
-      ]
-    }
-    originHostHeader: replace(replace(uistgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
-    origins: [
-      {
-        name: replace(replace(replace(uistgacc.properties.primaryEndpoints.web, 'https://', ''), '/', ''), '.', '-')
-        properties: {
-          hostName: replace(replace(uistgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
-          originHostHeader: replace(replace(uistgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
-        }
-      }
-    ]
+    enabledState: 'Enabled'
   }
 }
+*/
 
-// endpoint (ui / new website)
-resource cdnprofile_ui2endpoint 'Microsoft.Cdn/profiles/endpoints@2022-11-01-preview' = {
+// endpoint (ui / new website) - commented out
+/*
+resource cdnprofile_ui2endpoint 'Microsoft.Cdn/profiles/afdEndpoints@2022-11-01-preview' = {
   name: cdnUi2EndpointName
   location: 'global'
-  tags: resourceTags
   parent: cdnprofile
   properties: {
-    isCompressionEnabled: true
-    contentTypesToCompress: [
-      'application/eot'
-      'application/font'
-      'application/font-sfnt'
-      'application/javascript'
-      'application/json'
-      'application/opentype'
-      'application/otf'
-      'application/pkcs7-mime'
-      'application/truetype'
-      'application/ttf'
-      'application/vnd.ms-fontobject'
-      'application/xhtml+xml'
-      'application/xml'
-      'application/xml+rss'
-      'application/x-font-opentype'
-      'application/x-font-truetype'
-      'application/x-font-ttf'
-      'application/x-httpd-cgi'
-      'application/x-javascript'
-      'application/x-mpegurl'
-      'application/x-opentype'
-      'application/x-otf'
-      'application/x-perl'
-      'application/x-ttf'
-      'font/eot'
-      'font/ttf'
-      'font/otf'
-      'font/opentype'
-      'image/svg+xml'
-      'text/css'
-      'text/csv'
-      'text/html'
-      'text/javascript'
-      'text/js'
-      'text/plain'
-      'text/richtext'
-      'text/tab-separated-values'
-      'text/xml'
-      'text/x-script'
-      'text/x-component'
-      'text/x-java-source'
-    ]
-    deliveryPolicy: {
-      rules: [
-        {
-          name: 'Global'
-          order: 0
-          actions: [
-            {
-              name: 'CacheExpiration'
-              parameters: {
-                typeName: 'DeliveryRuleCacheExpirationActionParameters'
-                cacheBehavior: 'SetIfMissing'
-                cacheType: 'All'
-                cacheDuration: '02:00:00'
-              }
-            }
-          ]
-        }
-        {
-          name: 'EnforceHttps'
-          order: 1
-          conditions: [
-            {
-              name: 'RequestScheme'
-              parameters: {
-                typeName: 'DeliveryRuleRequestSchemeConditionParameters'
-                matchValues: [
-                  'HTTP'
-                ]
-                operator: 'Equal'
-                negateCondition: false
-                transforms: []
-              }
-            }
-          ]
-          actions: [
-            {
-              name: 'UrlRedirect'
-              parameters: {
-                typeName: 'DeliveryRuleUrlRedirectActionParameters'
-                redirectType: 'Found'
-                destinationProtocol: 'Https'
-              }
-            }
-          ]
-        }
-      ]
-    }
-    originHostHeader: replace(replace(ui2stgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
-    origins: [
-      {
-        name: replace(replace(replace(ui2stgacc.properties.primaryEndpoints.web, 'https://', ''), '/', ''), '.', '-')
-        properties: {
-          hostName: replace(replace(ui2stgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
-          originHostHeader: replace(replace(ui2stgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
-        }
-      }
-    ]
+    enabledState: 'Enabled'
   }
 }
+*/
 
 //
 // container registry
@@ -1845,7 +1636,8 @@ resource chaoskvexperiment 'Microsoft.Chaos/experiments@2022-10-01-preview' = {
 }
 
 // target: aks
-resource chaosakstarget 'Microsoft.Chaos/targets@2022-10-01-preview' = {
+resource chaosakstarget 'Microsoft.Chaos/targets@2022-10-01-preview' = 
+if (deployAks) {
   name: 'Microsoft-AzureKubernetesServiceChaosMesh'
   location: resourceLocation
   scope: aks
@@ -1858,7 +1650,8 @@ resource chaosakstarget 'Microsoft.Chaos/targets@2022-10-01-preview' = {
 }
 
 // chaos experiment: aks (chaos mesh)
-resource chaosaksexperiment 'Microsoft.Chaos/experiments@2022-10-01-preview' = {
+resource chaosaksexperiment 'Microsoft.Chaos/experiments@2022-10-01-preview' = 
+if (deployAks) {
   name: chaosAksExperimentName
   location: resourceLocation
   tags: resourceTags
@@ -1910,4 +1703,4 @@ resource chaosaksexperiment 'Microsoft.Chaos/experiments@2022-10-01-preview' = {
 ////////////////////////////////////////////////////////////////////////////////
 
 output cartsApiEndpoint string = 'https://${cartsapiaca.properties.configuration.ingress.fqdn}'
-output uiCdnEndpoint string = 'https://${cdnprofile_ui2endpoint.properties.hostName}'
+output uiCdnEndpoint string = ui2stgacc.properties.primaryEndpoints.web
