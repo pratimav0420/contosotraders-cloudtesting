@@ -496,7 +496,7 @@ resource productsapiappsvcplan 'Microsoft.Web/serverfarms@2022-03-01' = {
   location: resourceLocation
   tags: resourceTags
   sku: {
-    name: 'F1'
+    name: 'B1'
   }
   properties: {
     reserved: true
@@ -530,6 +530,14 @@ resource productsapiappsvc 'Microsoft.Web/sites@2022-03-01' = {
         {
           name: productsApiSettingNameManagedIdentityClientId
           value: userassignedmiforkvaccess.properties.clientId
+        }
+        {
+          name: 'AZURE_STORAGE_ACCOUNT_NAME'
+          value: productimagesstgacc.name
+        }
+        {
+          name: 'AZURE_STORAGE_BLOB_ENDPOINT'
+          value: productimagesstgacc.properties.primaryEndpoints.blob
         }
       ]
     }
@@ -714,6 +722,14 @@ resource cartsapiaca 'Microsoft.App/containerApps@2022-06-01-preview' = {
               name: cartsApiSettingNameManagedIdentityClientId
               value: userassignedmiforkvaccess.properties.clientId
             }
+            {
+              name: 'AZURE_STORAGE_ACCOUNT_NAME'
+              value: productimagesstgacc.name
+            }
+            {
+              name: 'AZURE_STORAGE_BLOB_ENDPOINT'
+              value: productimagesstgacc.properties.primaryEndpoints.blob
+            }
           ]
           // using a public image initially because no images have been pushed to our private ACR yet
           // at this point. At a later point, our github workflow will update the ACA app to use the 
@@ -744,7 +760,10 @@ resource productimagesstgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: true
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    supportsHttpsTrafficOnly: true
+    publicNetworkAccess: 'Enabled'
   }
   // blob service
   resource productimagesstgacc_blobsvc 'blobServices' = {
@@ -754,7 +773,7 @@ resource productimagesstgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     resource productimagesstgacc_blobsvc_productdetailscontainer 'containers' = {
       name: productImagesProductDetailsContainerName
       properties: {
-        publicAccess: 'Container'
+        publicAccess: 'None'
       }
     }
 
@@ -762,7 +781,7 @@ resource productimagesstgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     resource productimagesstgacc_blobsvc_productlistcontainer 'containers' = {
       name: productImagesProductListContainerName
       properties: {
-        publicAccess: 'Container'
+        publicAccess: 'None'
       }
     }
   }
@@ -783,7 +802,10 @@ resource uistgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: true
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    supportsHttpsTrafficOnly: true
+    publicNetworkAccess: 'Enabled'
   }
   // blob service
   resource uistgacc_blobsvc 'blobServices' = {
@@ -803,6 +825,20 @@ resource storageAccountContributorRole 'Microsoft.Authorization/roleDefinitions@
   // This is the Storage Account Contributor role, which is the minimum role permission we can give. 
   // See https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#:~:text=17d1049b-9a84-46fb-8f53-869881c3d3ab
   name: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+}
+
+// Storage Blob Data Reader role for reading blobs
+resource storageBlobDataReaderRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: subscription()
+  // Storage Blob Data Reader - allows read access to blob data
+  name: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+}
+
+// Storage Blob Data Contributor role for reading/writing blobs  
+resource storageBlobDataContributorRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: subscription()
+  // Storage Blob Data Contributor - allows read/write/delete access to blob data
+  name: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 }
 
 // This requires the service principal to be in 'owner' role or a custom role with 'Microsoft.Authorization/roleAssignments/write' permissions.
@@ -848,6 +884,47 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   }
 }
 
+// Role assignments for blob data access using managed identity instead of keys
+resource productimagesstgacc_blobDataReaderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: productimagesstgacc
+  name: guid(resourceGroup().id, userassignedmiforkvaccess.id, storageBlobDataReaderRole.id, productimagesstgacc.id)
+  properties: {
+    roleDefinitionId: storageBlobDataReaderRole.id
+    principalId: userassignedmiforkvaccess.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource uistgacc_blobDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: uistgacc
+  name: guid(resourceGroup().id, userassignedmiforkvaccess.id, storageBlobDataContributorRole.id, uistgacc.id)
+  properties: {
+    roleDefinitionId: storageBlobDataContributorRole.id
+    principalId: userassignedmiforkvaccess.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource ui2stgacc_blobDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: ui2stgacc
+  name: guid(resourceGroup().id, userassignedmiforkvaccess.id, storageBlobDataContributorRole.id, ui2stgacc.id)
+  properties: {
+    roleDefinitionId: storageBlobDataContributorRole.id
+    principalId: userassignedmiforkvaccess.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource imageclassifierstgacc_blobDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: imageclassifierstgacc
+  name: guid(resourceGroup().id, userassignedmiforkvaccess.id, storageBlobDataContributorRole.id, imageclassifierstgacc.id)
+  properties: {
+    roleDefinitionId: storageBlobDataContributorRole.id
+    principalId: userassignedmiforkvaccess.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // storage account (new website)
 resource ui2stgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: ui2StgAccName
@@ -858,7 +935,10 @@ resource ui2stgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: true
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    supportsHttpsTrafficOnly: true
+    publicNetworkAccess: 'Enabled'
   }
 
   // blob service
@@ -930,7 +1010,10 @@ resource imageclassifierstgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = 
   }
   kind: 'StorageV2'
   properties: {
-    allowBlobPublicAccess: true
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    supportsHttpsTrafficOnly: true
+    publicNetworkAccess: 'Enabled'
   }
 
   // blob service
@@ -941,7 +1024,7 @@ resource imageclassifierstgacc 'Microsoft.Storage/storageAccounts@2023-01-01' = 
     resource uistgacc_blobsvc_websiteuploadscontainer 'containers' = {
       name: imageClassifierWebsiteUploadsContainerName
       properties: {
-        publicAccess: 'Container'
+        publicAccess: 'None'
       }
     }
   }
@@ -956,7 +1039,7 @@ resource cdnprofile 'Microsoft.Cdn/profiles@2022-11-01-preview' = {
   location: 'global'
   tags: resourceTags
   sku: {
-    name: 'Standard_Microsoft'
+    name: 'Standard_Verizon'
   }
 }
 
@@ -1471,7 +1554,7 @@ resource jumpboxvm 'Microsoft.Compute/virtualMachines@2022-08-01' =
     tags: resourceTags
     properties: {
       hardwareProfile: {
-        vmSize: 'Standard_D2s_v3'
+        vmSize: 'Standard_B1s'
       }
       storageProfile: {
         osDisk: {
