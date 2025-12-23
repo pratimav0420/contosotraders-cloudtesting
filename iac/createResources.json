@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "15178745645725995063"
+      "templateHash": "17297153186194082857"
     }
   },
   "parameters": {
@@ -17,15 +17,16 @@
         "description": "A unique environment suffix (max 6 characters, alphanumeric only)."
       }
     },
-    "sqlPassword": {
-      "type": "securestring",
-      "metadata": {
-        "description": "A password which will be set on all SQL Azure DBs."
-      }
-    },
     "resourceLocation": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
+    },
+    "jumpboxAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "TempPassword123!",
+      "metadata": {
+        "description": "Password for the jumpbox VM (only used when deployPrivateEndpoints is true)"
+      }
     },
     "tenantId": {
       "type": "string",
@@ -83,11 +84,9 @@
     "productsDbServerName": "[format('{0}-products{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "productsDbName": "productsdb",
     "productsDbServerAdminLogin": "localadmin",
-    "productsDbServerAdminPassword": "[parameters('sqlPassword')]",
     "profilesDbServerName": "[format('{0}-profiles{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "profilesDbName": "profilesdb",
     "profilesDbServerAdminLogin": "localadmin",
-    "profilesDbServerAdminPassword": "[parameters('sqlPassword')]",
     "cartsApiAcaName": "[format('{0}-carts{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "cartsApiAcaEnvName": "[format('{0}acaenv{1}', parameters('prefix'), parameters('suffix'))]",
     "cartsApiAcaSecretAcrPassword": "acr-password",
@@ -132,7 +131,7 @@
     "jumpboxNicName": "[format('{0}-jumpbox{1}', parameters('prefixHyphenated'), parameters('suffix'))]",
     "jumpboxVmName": "jumpboxvm",
     "jumpboxVmAdminLogin": "localadmin",
-    "jumpboxVmAdminPassword": "[parameters('sqlPassword')]",
+    "jumpboxVmAdminPassword": "[parameters('jumpboxAdminPassword')]",
     "jumpboxVmShutdownSchduleName": "shutdown-computevm-jumpboxvm",
     "jumpboxVmShutdownScheduleTimezoneId": "UTC",
     "privateDnsZoneVnetLinkName": "[format('{0}-privatednszone-vnet-link{1}', parameters('prefixHyphenated'), parameters('suffix'))]",

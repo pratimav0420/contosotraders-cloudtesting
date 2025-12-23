@@ -10,11 +10,12 @@ targetScope = 'resourceGroup'
 @description('A unique environment suffix (max 6 characters, alphanumeric only).')
 param suffix string
 
-@secure()
-@description('A password which will be set on all SQL Azure DBs.')
-param sqlPassword string // @TODO: Obviously, we need to fix this!
-
 param resourceLocation string = resourceGroup().location
+
+// jumpbox VM password (only used when private endpoints are deployed)
+@secure()
+@description('Password for the jumpbox VM (only used when deployPrivateEndpoints is true)')
+param jumpboxAdminPassword string
 
 // tenant
 param tenantId string = subscription().tenantId
@@ -72,14 +73,10 @@ var productsApiSettingNameManagedIdentityClientId = 'ManagedIdentityClientId'
 // sql azure (products db)
 var productsDbServerName = '${prefixHyphenated}-products${suffix}'
 var productsDbName = 'productsdb'
-var productsDbServerAdminLogin = 'localadmin'
-var productsDbServerAdminPassword = sqlPassword
 
 // sql azure (profiles db)
 var profilesDbServerName = '${prefixHyphenated}-profiles${suffix}'
 var profilesDbName = 'profilesdb'
-var profilesDbServerAdminLogin = 'localadmin'
-var profilesDbServerAdminPassword = sqlPassword
 
 // azure container app (carts api)
 var cartsApiAcaName = '${prefixHyphenated}-carts${suffix}'
@@ -152,7 +149,7 @@ var jumpboxNsgName = '${prefixHyphenated}-jumpbox${suffix}'
 var jumpboxNicName = '${prefixHyphenated}-jumpbox${suffix}'
 var jumpboxVmName = 'jumpboxvm'
 var jumpboxVmAdminLogin = 'localadmin'
-var jumpboxVmAdminPassword = sqlPassword
+var jumpboxVmAdminPassword = jumpboxAdminPassword
 var jumpboxVmShutdownSchduleName = 'shutdown-computevm-jumpboxvm'
 var jumpboxVmShutdownScheduleTimezoneId = 'UTC'
 

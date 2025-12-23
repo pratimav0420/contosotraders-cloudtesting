@@ -155,7 +155,7 @@ jobs:
           region: ${{ vars.DEPLOYMENTREGION }}
           resourceGroupName: ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }}
           template: ./iac/createResources.bicep
-          parameters: ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }} deployAks=${{ vars.DEPLOYAKS }}
+          parameters: ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }} deployAks=${{ vars.DEPLOYAKS }}
           deploymentName: CREATERESOURCES-${{ vars.SUFFIX }}
           failOnStdErr: false
       # Add the logged-in service principal to the key vault access policy
@@ -182,7 +182,7 @@ jobs:
       - name: seed products db
         uses: azure/sql-action@v2.2
         with:
-          connection-string: Server=tcp:${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net,1433;Initial Catalog=${{ env.PRODUCTS_DB_NAME }};Persist Security Info=False;User ID=${{ env.PRODUCTS_DB_USER_NAME }};Password=${{ secrets.SQLPASSWORD }};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+          connection-string: Server=tcp:${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net,1433;Initial Catalog=${{ env.PRODUCTS_DB_NAME }};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;
           path: ./src/ContosoTraders.Api.Products/Migration/productsdb.sql
       - name: seed product image (product details)
         uses: azure/CLI@v1
