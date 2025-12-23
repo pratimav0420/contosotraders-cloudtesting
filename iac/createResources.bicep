@@ -1087,7 +1087,7 @@ resource cdnprofile 'Microsoft.Cdn/profiles@2022-11-01-preview' = {
   location: 'global'
   tags: resourceTags
   sku: {
-    name: 'Standard_Verizon'
+    name: 'Standard_Microsoft'
   }
 }
 
