@@ -892,7 +892,7 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     uistgacc_blobDataOwnerRole
   ]
   properties: {
-    azPowerShellVersion: '3.0'
+    azPowerShellVersion: '11.0'
     scriptContent: loadTextContent('./scripts/enable-static-website.ps1')
     retentionInterval: 'PT4H'
     environmentVariables: [
@@ -1028,7 +1028,7 @@ resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
     ui2stgacc_blobDataOwnerRole
   ]
   properties: {
-    azPowerShellVersion: '3.0'
+    azPowerShellVersion: '11.0'
     scriptContent: loadTextContent('./scripts/enable-static-website.ps1')
     retentionInterval: 'PT4H'
     environmentVariables: [
