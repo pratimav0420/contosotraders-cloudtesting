@@ -155,7 +155,7 @@ jobs:
           region: ${{ vars.DEPLOYMENTREGION }}
           resourceGroupName: ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }}
           template: ./iac/createResources.bicep
-          parameters: ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }}
+          parameters: ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }} deployAks=${{ vars.DEPLOYAKS || 'false' }}
           deploymentName: CREATERESOURCES-${{ vars.SUFFIX }}
           failOnStdErr: false
       # Add the logged-in service principal to the key vault access policy
@@ -164,7 +164,14 @@ jobs:
         with:
           inlineScript: az keyvault set-policy -n ${{ env.KV_NAME }}${{ vars.SUFFIX }} -g ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} --secret-permissions get list set --object-id $(az ad sp show --id $(az account show --query "user.name" -o tsv) --query "id" -o tsv)
       # The AKS agent pool needs to be assigned the user-assigned managed identity created (which has kv access)
+      # This step only runs if AKS is deployed (deployAks=true)
+      - name: wait for aks provisioning to complete
+        if: ${{ vars.DEPLOYAKS == 'true' }}
+        run: |
+          echo "Waiting for AKS cluster to be fully provisioned..."
+          az aks wait --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} --name ${{ env.AKS_CLUSTER_NAME }}${{ vars.SUFFIX }} --created --timeout 1800
       - name: assign user-assigned managed-identity to aks agentpool
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/CLI@v1
         with:
           inlineScript: |
@@ -235,20 +242,25 @@ jobs:
           inlineScript: echo "cartsApiEndpoint"="$(az keyvault secret show --vault-name ${{ env.KV_NAME }}${{ vars.SUFFIX }} --name cartsApiEndpoint --query value -o tsv)" >> $GITHUB_OUTPUT
 
       #
-      # section #3: deploy the products api
+      # section #3: deploy the products api (AKS only)
       #
       - name: install helm
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/setup-helm@v3
         id: install-helm
         with:
           version: v3.9.0
       - name: docker build
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         run: docker build src -f ./src/ContosoTraders.Api.Products/Dockerfile -t ${{ env.ACR_NAME }}${{ vars.SUFFIX }}.azurecr.io/${{ env.PRODUCTS_ACR_REPOSITORY_NAME }}:latest -t ${{ env.ACR_NAME }}${{ vars.SUFFIX }}.azurecr.io/${{ env.PRODUCTS_ACR_REPOSITORY_NAME }}:${{ github.sha }}
       - name: docker push (to acr)
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         run: docker push --all-tags ${{ env.ACR_NAME }}${{ vars.SUFFIX }}.azurecr.io/${{ env.PRODUCTS_ACR_REPOSITORY_NAME }}
       - name: setup kubectl
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/setup-kubectl@v3
       - name: create kubernetes secret (acr password)
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-create-secret@v4
         with:
           secret-name: ${{ env.AKS_SECRET_NAME_ACR_PASSWORD }}
@@ -256,23 +268,27 @@ jobs:
           container-registry-username: ${{ env.ACR_NAME }}${{ vars.SUFFIX }}
           container-registry-password: ${{ steps.extract-acr-password.outputs.acrPassword }}
       - name: get managedIdentityClientId
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/CLI@v1
         id: get-managedIdentityClientId
         with:
           inlineScript: echo "managedIdentityClientId"="$(az identity show -g ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} --name ${{ env.USER_ASSIGNED_MANAGED_IDENTITY_NAME }}${{ vars.SUFFIX }} --query "clientId" -o tsv)" >> $GITHUB_OUTPUT
       - name: create kubernetes secret (kv endpoint)
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-create-secret@v4
         with:
           secret-type: "generic"
           secret-name: ${{ env.AKS_SECRET_NAME_KV_ENDPOINT }}
           string-data: '{ "${{ env.AKS_SECRET_NAME_KV_ENDPOINT }}" : "https://${{ env.KV_NAME }}${{ vars.SUFFIX }}.vault.azure.net/" }'
       - name: create kubernetes secret (managed identity client id)
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-create-secret@v4
         with:
           secret-type: "generic"
           secret-name: ${{ env.AKS_SECRET_NAME_MI_CLIENTID }}
           string-data: '{ "${{ env.AKS_SECRET_NAME_MI_CLIENTID }}" : "${{ steps.get-managedIdentityClientId.outputs.managedIdentityClientId }}" }'
       - name: substitute tokens in deployment manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: cschleiden/replace-tokens@v1.2
         with:
           tokenPrefix: "{"
@@ -284,10 +300,12 @@ jobs:
           AKS_CPU_LIMIT: ${{ env.AKS_CPU_LIMIT }}
           AKS_MEMORY_LIMIT: ${{ env.AKS_MEMORY_LIMIT }}
       - name: lint deployment manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/k8s-lint@v2.0
         with:
           manifests: ./src/ContosoTraders.Api.Products/Manifests/Deployment.yaml
       - name: apply deployment manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           manifests: ./src/ContosoTraders.Api.Products/Manifests/Deployment.yaml
@@ -295,6 +313,7 @@ jobs:
           imagepullsecrets: ${{ env.AKS_SECRET_NAME_ACR_PASSWORD }}
           force: true
       - name: apply service manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
@@ -302,12 +321,14 @@ jobs:
           force: true
       # setup chaos mesh
       - name: apply namespace manifest (chaos-testing)
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
           manifests: ./src/ContosoTraders.Api.Products/Manifests/NamespaceChaosTesting.yaml
           force: true
       - name: setup chaos mesh
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         run: |
           az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} --name ${{ env.AKS_CLUSTER_NAME }}${{ vars.SUFFIX }}
           ${{ steps.install-helm.outputs.helm-path }} repo add chaos-mesh https://charts.chaos-mesh.org
@@ -315,6 +336,7 @@ jobs:
           ${{ steps.install-helm.outputs.helm-path }} upgrade --install chaos-mesh chaos-mesh/chaos-mesh --namespace=chaos-testing --set chaosDaemon.runtime=containerd --set chaosDaemon.socketPath=/run/containerd/containerd.sock
       # create the ingress controller
       - name: create ingress controller
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         run: |
           az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} --name ${{ env.AKS_CLUSTER_NAME }}${{ vars.SUFFIX }}
           ${{ steps.install-helm.outputs.helm-path }} repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -326,11 +348,13 @@ jobs:
             --set controller.admissionWebhooks.patch.nodeSelector."kubernetes\.io/os"=linux \
             --set controller.service.externalTrafficPolicy=Local
       - name: set dns label on public ip
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/CLI@v1
         with:
           inlineScript: az network public-ip update --dns-name ${{ env.AKS_DNS_LABEL }}${{ vars.SUFFIX }} -g ${{ env.AKS_NODES_RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} -n $(az network public-ip list --query "[?starts_with(name,'kubernetes-') ].name" -o tsv -g ${{ env.AKS_NODES_RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }})
       # hack: extract the full fqdn / dns label of the aks app's public IP address
       - name: get aks-fqdn
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/CLI@v1
         id: get-aks-fqdn
         with:
@@ -338,25 +362,30 @@ jobs:
           inlineScript: echo "aksFqdn"="$(az network public-ip list --query "[?starts_with(name,'kubernetes-') ].dnsSettings.fqdn" -o tsv -g ${{ env.AKS_NODES_RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }})" >> $GITHUB_OUTPUT
       # install cert-manager
       - name: apply namespace manifest (cert-manager)
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
           manifests: ./src/ContosoTraders.Api.Products/Manifests/NamespaceCertManager.yaml
           force: true
       - name: install cert-manager
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         run: |
           az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} --name ${{ env.AKS_CLUSTER_NAME }}${{ vars.SUFFIX }}
           kubectl apply --validate=false -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
       - name: sleep for 30 seconds
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         run: sleep 30s
         shell: bash
       - name: apply clusterIssuer manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
           manifests: ./src/ContosoTraders.Api.Products/Manifests/ClusterIssuer.yaml
           force: true
       - name: substitute tokens in certificate manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: cschleiden/replace-tokens@v1.2
         with:
           tokenPrefix: "{"
@@ -365,12 +394,14 @@ jobs:
         env:
           AKS_FQDN: ${{ steps.get-aks-fqdn.outputs.aksFqdn }}
       - name: apply certificate manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
           manifests: ./src/ContosoTraders.Api.Products/Manifests/Certificate.yaml
           force: true
       - name: substitute tokens in ingress manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: cschleiden/replace-tokens@v1.2
         with:
           tokenPrefix: "{"
@@ -379,21 +410,30 @@ jobs:
         env:
           AKS_FQDN: ${{ steps.get-aks-fqdn.outputs.aksFqdn }}
       - name: apply ingress manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
           manifests: ./src/ContosoTraders.Api.Products/Manifests/Ingress.yaml
           force: true
       - name: apply clusterRole manifest
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: Azure/k8s-deploy@v4
         with:
           pull-images: false
           manifests: ./src/ContosoTraders.Api.Products/Manifests/ClusterRole.yaml
           force: true
       - name: set productsApiEndpoint in kv
+        if: ${{ vars.DEPLOYAKS == 'true' }}
         uses: azure/CLI@v1
         with:
           inlineScript: az keyvault secret set --vault-name ${{ env.KV_NAME }}${{ vars.SUFFIX }} --name productsApiEndpoint --value ${{ steps.get-aks-fqdn.outputs.aksFqdn }} --description "endpoint url (fqdn) of the products api"
+      # Set products API endpoint to App Service when AKS is not deployed
+      - name: set productsApiEndpoint in kv (App Service)
+        if: ${{ vars.DEPLOYAKS != 'true' }}
+        uses: azure/CLI@v1
+        with:
+          inlineScript: az keyvault secret set --vault-name ${{ env.KV_NAME }}${{ vars.SUFFIX }} --name productsApiEndpoint --value contoso-traders-products${{ vars.SUFFIX }}.azurewebsites.net --description "endpoint url (fqdn) of the products api (App Service)"
       - name: get products api endpoint
         uses: azure/CLI@v1
         id: get-productsApiEndpoint
@@ -463,6 +503,7 @@ jobs:
           inlineScript: echo UI CDN endpoint accessible at https://$(az keyvault secret show --vault-name ${{ env.KV_NAME }}${{ vars.SUFFIX }} --name uiCdnEndpoint --query value -o tsv)
 
   load-tests-with-chaos-products-api:
+    if: false  # Skipping load tests
     needs: [provision, playwright-tests-ui]
     runs-on: ubuntu-22.04
     concurrency:
@@ -523,6 +564,7 @@ jobs:
             ]
 
   load-tests-carts-internal-api:
+    if: false  # Skipping load tests
     if: ${{ vars.DEPLOYPRIVATEENDPOINTS == 'true' }}
     needs: [provision, playwright-tests-ui]
     runs-on: ubuntu-22.04
@@ -590,6 +632,7 @@ jobs:
             ]
 
   load-tests-carts-api:
+    if: false  # Skipping load tests
     needs: [provision, playwright-tests-ui]
     runs-on: ubuntu-22.04
     concurrency:

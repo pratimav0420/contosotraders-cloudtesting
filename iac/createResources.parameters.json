@@ -4,6 +4,9 @@
   "parameters": {
     "aksLinuxAdminUsername": {
       "value": "localadmin"
+    },
+    "deployAks": {
+      "value": true
     }
   }
 }

@@ -324,6 +324,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
   // access policies
   resource kv_accesspolicies 'accessPolicies' = {
     name: 'replace'
+    dependsOn: deployAks ? [aks] : []
     properties: {
       // @TODO: I was unable to figure out how to assign an access policy to the AKS cluster's agent pool's managed identity.
       // Hence, that specific access policy will be assigned from a github workflow (using AZ CLI).
@@ -1234,6 +1235,10 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-10-02-preview' =
   name: aksClusterName
   location: resourceLocation
   tags: resourceTags
+  dependsOn: [
+    userassignedmiforkvaccess
+    vnet
+  ]
   identity: {
     type: 'SystemAssigned'
   }
