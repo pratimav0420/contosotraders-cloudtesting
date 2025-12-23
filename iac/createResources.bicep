@@ -597,6 +597,78 @@ resource productsdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   }
 }
 
+// Grant managed identity access to products database
+resource grantMIAccessToProductsDB 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'grantMIAccessToProductsDB'
+  location: resourceLocation
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userassignedmiforkvaccess.id}': {}
+    }
+  }
+  properties: {
+    azPowerShellVersion: '8.3'
+    retentionInterval: 'PT1H'
+    scriptContent: '''
+      # Connect to SQL Server using Azure AD
+      $serverName = $env:SQL_SERVER_NAME
+      $databaseName = $env:DATABASE_NAME
+      $managedIdentityName = $env:MANAGED_IDENTITY_NAME
+      
+      Write-Output "Connecting to SQL Server: $serverName"
+      Write-Output "Database: $databaseName"
+      Write-Output "Managed Identity: $managedIdentityName"
+      
+      # Install SqlServer module if not present
+      if (-not (Get-Module -ListAvailable -Name SqlServer)) {
+          Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
+      }
+      
+      try {
+          # Create user and grant permissions
+          $connectionString = "Server=tcp:$serverName.database.windows.net,1433;Initial Catalog=$databaseName;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
+          
+          $sql = @"
+            IF NOT EXISTS (SELECT name FROM sys.database_principals WHERE name = '$managedIdentityName')
+            BEGIN
+                CREATE USER [$managedIdentityName] FROM EXTERNAL PROVIDER;
+            END
+            ALTER ROLE db_datareader ADD MEMBER [$managedIdentityName];
+            ALTER ROLE db_datawriter ADD MEMBER [$managedIdentityName];
+            ALTER ROLE db_ddladmin ADD MEMBER [$managedIdentityName];
+"@
+          
+          Invoke-Sqlcmd -ConnectionString $connectionString -Query $sql
+          Write-Output "Successfully granted permissions to managed identity"
+      }
+      catch {
+          Write-Output "Error: $($_.Exception.Message)"
+          throw
+      }
+    '''
+    environmentVariables: [
+      {
+        name: 'SQL_SERVER_NAME'
+        value: productsDbServerName
+      }
+      {
+        name: 'DATABASE_NAME'
+        value: productsDbName
+      }
+      {
+        name: 'MANAGED_IDENTITY_NAME'
+        value: userAssignedMIForKVAccessName
+      }
+    ]
+  }
+  dependsOn: [
+    productsdbsrv
+    userassignedmiforkvaccess
+  ]
+}
+
 //
 // profiles db
 //
@@ -638,6 +710,78 @@ resource profilesdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
       startIpAddress: '0.0.0.0'
     }
   }
+}
+
+// Grant managed identity access to profiles database
+resource grantMIAccessToProfilesDB 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'grantMIAccessToProfilesDB'
+  location: resourceLocation
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userassignedmiforkvaccess.id}': {}
+    }
+  }
+  properties: {
+    azPowerShellVersion: '8.3'
+    retentionInterval: 'PT1H'
+    scriptContent: '''
+      # Connect to SQL Server using Azure AD
+      $serverName = $env:SQL_SERVER_NAME
+      $databaseName = $env:DATABASE_NAME
+      $managedIdentityName = $env:MANAGED_IDENTITY_NAME
+      
+      Write-Output "Connecting to SQL Server: $serverName"
+      Write-Output "Database: $databaseName"
+      Write-Output "Managed Identity: $managedIdentityName"
+      
+      # Install SqlServer module if not present
+      if (-not (Get-Module -ListAvailable -Name SqlServer)) {
+          Install-Module -Name SqlServer -Force -AllowClobber -Scope CurrentUser
+      }
+      
+      try {
+          # Create user and grant permissions
+          $connectionString = "Server=tcp:$serverName.database.windows.net,1433;Initial Catalog=$databaseName;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
+          
+          $sql = @"
+            IF NOT EXISTS (SELECT name FROM sys.database_principals WHERE name = '$managedIdentityName')
+            BEGIN
+                CREATE USER [$managedIdentityName] FROM EXTERNAL PROVIDER;
+            END
+            ALTER ROLE db_datareader ADD MEMBER [$managedIdentityName];
+            ALTER ROLE db_datawriter ADD MEMBER [$managedIdentityName];
+            ALTER ROLE db_ddladmin ADD MEMBER [$managedIdentityName];
+"@
+          
+          Invoke-Sqlcmd -ConnectionString $connectionString -Query $sql
+          Write-Output "Successfully granted permissions to managed identity"
+      }
+      catch {
+          Write-Output "Error: $($_.Exception.Message)"
+          throw
+      }
+    '''
+    environmentVariables: [
+      {
+        name: 'SQL_SERVER_NAME'
+        value: profilesDbServerName
+      }
+      {
+        name: 'DATABASE_NAME'
+        value: profilesDbName
+      }
+      {
+        name: 'MANAGED_IDENTITY_NAME'
+        value: userAssignedMIForKVAccessName
+      }
+    ]
+  }
+  dependsOn: [
+    profilesdbsrv
+    userassignedmiforkvaccess
+  ]
 }
 
 //
