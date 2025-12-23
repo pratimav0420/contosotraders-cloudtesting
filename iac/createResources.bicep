@@ -556,6 +556,7 @@ resource productsdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   tags: resourceTags
   properties: {
     publicNetworkAccess: 'Enabled'
+    restrictOutboundNetworkAccess: 'Disabled'
     administrators: {
       azureADOnlyAuthentication: true
       administratorType: 'ActiveDirectory'
@@ -595,6 +596,15 @@ resource productsdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
       startIpAddress: '0.0.0.0'
     }
   }
+
+  // Allow Azure services and resources to access this server
+  resource productsdbsrv_allowAzureServices 'firewallRules' = {
+    name: 'AllowAzureServices'
+    properties: {
+      startIpAddress: '0.0.0.0'
+      endIpAddress: '0.0.0.0'
+    }
+  }
 }
 
 // NOTE: After deployment, connect to SQL Server as admin@MngEnvMCAP070665.onmicrosoft.com and run:
@@ -616,6 +626,7 @@ resource profilesdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   tags: resourceTags
   properties: {
     publicNetworkAccess: 'Enabled'
+    restrictOutboundNetworkAccess: 'Disabled'
     administrators: {
       azureADOnlyAuthentication: true
       administratorType: 'ActiveDirectory'
@@ -644,6 +655,15 @@ resource profilesdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
     properties: {
       endIpAddress: '0.0.0.0'
       startIpAddress: '0.0.0.0'
+    }
+  }
+
+  // Allow Azure services and resources to access this server
+  resource profilesdbsrv_allowAzureServices 'firewallRules' = {
+    name: 'AllowAzureServices'
+    properties: {
+      startIpAddress: '0.0.0.0'
+      endIpAddress: '0.0.0.0'
     }
   }
 }

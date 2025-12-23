@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "12919573977249547435"
+      "templateHash": "15178745645725995063"
     }
   },
   "parameters": {
@@ -422,6 +422,18 @@
       ]
     },
     {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2022-05-01-preview",
+      "name": "[format('{0}/{1}', variables('productsDbServerName'), 'AllowAzureServices')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('productsDbServerName'))]"
+      ]
+    },
+    {
       "type": "Microsoft.Sql/servers/databases",
       "apiVersion": "2022-05-01-preview",
       "name": "[format('{0}/{1}', variables('profilesDbServerName'), variables('profilesDbName'))]",
@@ -443,6 +455,18 @@
       "properties": {
         "endIpAddress": "0.0.0.0",
         "startIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('profilesDbServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2022-05-01-preview",
+      "name": "[format('{0}/{1}', variables('profilesDbServerName'), 'AllowAzureServices')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Sql/servers', variables('profilesDbServerName'))]"
@@ -696,6 +720,7 @@
       "tags": "[variables('resourceTags')]",
       "properties": {
         "publicNetworkAccess": "Enabled",
+        "restrictOutboundNetworkAccess": "Disabled",
         "administrators": {
           "azureADOnlyAuthentication": true,
           "administratorType": "ActiveDirectory",
@@ -714,6 +739,7 @@
       "tags": "[variables('resourceTags')]",
       "properties": {
         "publicNetworkAccess": "Enabled",
+        "restrictOutboundNetworkAccess": "Disabled",
         "administrators": {
           "azureADOnlyAuthentication": true,
           "administratorType": "ActiveDirectory",
@@ -1189,7 +1215,11 @@
             ]
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('userAssignedMIForKVAccessName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+      ]
     },
     {
       "condition": "[parameters('deployAks')]",
