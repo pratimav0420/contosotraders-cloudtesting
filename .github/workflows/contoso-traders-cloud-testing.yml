@@ -224,23 +224,23 @@ jobs:
           # Add sqlcmd to PATH
           export PATH="$PATH:/opt/mssql-tools/bin"
           
-          # Get access token for Azure SQL and write to file
+          # Get access token for Azure SQL
           echo "Getting Azure SQL access token..."
-          az account get-access-token --resource https://database.windows.net --query accessToken -o tsv > /tmp/sql_token.txt
+          export SQLCMDPASSWORD=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
           
           # Create managed identity user and grant permissions
           echo "Setting up managed identity user in products database..."
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G -P "$(cat /tmp/sql_token.txt)" \
+            -G \
             -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
             -b
           
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G -P "$(cat /tmp/sql_token.txt)" \
+            -G \
             -Q "ALTER ROLE db_datareader ADD MEMBER [$miName]; ALTER ROLE db_datawriter ADD MEMBER [$miName]; ALTER ROLE db_ddladmin ADD MEMBER [$miName];" \
             -b
           
@@ -249,12 +249,12 @@ jobs:
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G -P "$(cat /tmp/sql_token.txt)" \
+            -G \
             -i ./src/ContosoTraders.Api.Products/Migration/productsdb.sql \
             -b
           
-          # Clean up token file
-          rm -f /tmp/sql_token.txt
+          # Clear the password from environment
+          unset SQLCMDPASSWORD
           
           # Clean up: Remove the temporary firewall rule
           echo "Cleaning up temporary firewall rule..."
@@ -293,28 +293,28 @@ jobs:
             --end-ip-address $clientIp \
             --only-show-errors
           
-          # Get access token for Azure SQL and write to file
+          # Get access token for Azure SQL
           echo "Getting Azure SQL access token..."
-          az account get-access-token --resource https://database.windows.net --query accessToken -o tsv > /tmp/sql_token_profiles.txt
+          export SQLCMDPASSWORD=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
           
           # Create managed identity user and grant permissions for profiles database
           echo "Setting up managed identity user in profiles database..."
           sqlcmd \
             -S ${{ env.PROFILES_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PROFILES_DB_NAME }} \
-            -G -P "$(cat /tmp/sql_token_profiles.txt)" \
+            -G \
             -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
             -b
           
           sqlcmd \
             -S ${{ env.PROFILES_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PROFILES_DB_NAME }} \
-            -G -P "$(cat /tmp/sql_token_profiles.txt)" \
+            -G \
             -Q "ALTER ROLE db_datareader ADD MEMBER [$miName]; ALTER ROLE db_datawriter ADD MEMBER [$miName]; ALTER ROLE db_ddladmin ADD MEMBER [$miName];" \
             -b
           
-          # Clean up token file
-          rm -f /tmp/sql_token_profiles.txt
+          # Clear the password from environment
+          unset SQLCMDPASSWORD
           
           # Clean up: Remove the temporary firewall rule
           echo "Cleaning up temporary firewall rule..."
@@ -324,10 +324,7 @@ jobs:
             --name "$firewallRuleName" \
             --only-show-errors || true
           
-          echo "Profiles database setup completed successfully!" \
-              --only-show-errors || true
-            
-            echo "Profiles database setup completed successfully!"
+          echo "Profiles database setup completed successfully!"
       - name: seed product image (product details)
         uses: azure/CLI@v1
         with:
