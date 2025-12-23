@@ -589,13 +589,7 @@ resource productsdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   }
 }
 
-// NOTE: After deployment, connect to SQL Server as admin@MngEnvMCAP070665.onmicrosoft.com and run:
-// 1. Connect to products database: USE [contoso-traders-productsdbcenpw9];
-// 2. Create user: CREATE USER [contoso-traders-mi-kv-accesscenpw9] FROM EXTERNAL PROVIDER;
-// 3. Grant permissions:
-//    ALTER ROLE db_datareader ADD MEMBER [contoso-traders-mi-kv-accesscenpw9];
-//    ALTER ROLE db_datawriter ADD MEMBER [contoso-traders-mi-kv-accesscenpw9];
-//    ALTER ROLE db_ddladmin ADD MEMBER [contoso-traders-mi-kv-accesscenpw9];
+// NOTE: Managed identity user access is now automatically configured during deployment via GitHub workflow
 
 //
 // profiles db
@@ -650,13 +644,7 @@ resource profilesdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   }
 }
 
-// NOTE: After deployment, connect to SQL Server as admin@MngEnvMCAP070665.onmicrosoft.com and run:
-// 1. Connect to profiles database: USE [contoso-traders-profilesdbcenpw9];
-// 2. Create user: CREATE USER [contoso-traders-mi-kv-accesscenpw9] FROM EXTERNAL PROVIDER;
-// 3. Grant permissions:
-//    ALTER ROLE db_datareader ADD MEMBER [contoso-traders-mi-kv-accesscenpw9];
-//    ALTER ROLE db_datawriter ADD MEMBER [contoso-traders-mi-kv-accesscenpw9];
-//    ALTER ROLE db_ddladmin ADD MEMBER [contoso-traders-mi-kv-accesscenpw9];
+// NOTE: Managed identity user access is now automatically configured during deployment via GitHub workflow
 
 //
 // carts api
