@@ -1,5 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
+# Wait for role assignments to propagate
+Write-Output "Waiting for role assignments to propagate..."
+Start-Sleep -Seconds 60
+
 # Get storage account using managed identity (no keys)
 $storageAccount = Get-AzStorageAccount -ResourceGroupName $env:ResourceGroupName -AccountName $env:StorageAccountName
 

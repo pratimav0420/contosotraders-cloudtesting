@@ -965,6 +965,17 @@ resource roleAssignment2 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   }
 }
 
+// Additional Website Contributor role for static website configuration
+resource ui2stgacc_websiteContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: ui2stgacc
+  name: guid(resourceGroup().id, ui2stgacc_mi.id, 'de139f84-1756-47ae-9be6-808fbbe84772')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772') // Website Contributor
+    principalId: ui2stgacc_mi.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript2'
   location: resourceLocation
@@ -976,8 +987,9 @@ resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
     }
   }
   dependsOn: [
-    // we need to ensure we wait for the role assignment to be deployed before trying to access the storage account
+    // we need to ensure we wait for the role assignments to be deployed before trying to access the storage account
     roleAssignment2
+    ui2stgacc_websiteContributorRole
   ]
   properties: {
     azPowerShellVersion: '3.0'
