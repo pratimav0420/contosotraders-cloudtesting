@@ -133,7 +133,7 @@ jobs:
       # Note: You can specify any location for `{LOCATION}`. It's the region where the deployment metadata will be stored, and not
       # where the resource groups will be deployed.
       - name: create resource group
-        uses: Azure/arm-deploy@v1
+        uses: Azure/arm-deploy@v2
         with:
           scope: subscription
           region: ${{ vars.DEPLOYMENTREGION }}
@@ -155,7 +155,7 @@ jobs:
           region: ${{ vars.DEPLOYMENTREGION }}
           resourceGroupName: ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }}
           template: ./iac/createResources.bicep
-          parameters: ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }} deployAks=${{ vars.DEPLOYAKS || 'false' }}
+          parameters: ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }} deployAks=${{ vars.DEPLOYAKS }}
           deploymentName: CREATERESOURCES-${{ vars.SUFFIX }}
           failOnStdErr: false
       # Add the logged-in service principal to the key vault access policy
