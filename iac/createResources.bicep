@@ -224,7 +224,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     tags: resourceTags
     properties: {
       contentType: 'connection string to the products db'
-      value: 'Server=tcp:${productsDbServerName}${sqlServerHostName},1433;Initial Catalog=${productsDbName};Persist Security Info=False;User ID=${productsDbServerAdminLogin};Password=${productsDbServerAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+      value: 'Server=tcp:${productsDbServerName}${sqlServerHostName},1433;Initial Catalog=${productsDbName};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;'
     }
   }
 
@@ -234,7 +234,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     tags: resourceTags
     properties: {
       contentType: 'connection string to the profiles db'
-      value: 'Server=tcp:${profilesDbServerName}${sqlServerHostName},1433;Initial Catalog=${profilesDbName};Persist Security Info=False;User ID=${profilesDbServerAdminLogin};Password=${profilesDbServerAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+      value: 'Server=tcp:${profilesDbServerName}${sqlServerHostName},1433;Initial Catalog=${profilesDbName};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;'
     }
   }
 
@@ -537,9 +537,15 @@ resource productsdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   location: resourceLocation
   tags: resourceTags
   properties: {
-    administratorLogin: productsDbServerAdminLogin
-    administratorLoginPassword: productsDbServerAdminPassword
     publicNetworkAccess: 'Enabled'
+    administrators: {
+      azureADOnlyAuthentication: true
+      administratorType: 'ActiveDirectory'
+      principalType: 'User'
+      login: 'admin@MngEnvMCAP070665.onmicrosoft.com'
+      sid: 'c0e1990f-ac97-4329-a074-e964d832f3f5'
+      tenantId: 'ed244546-f48e-4572-a767-d6d2a521a7c5'
+    }
   }
 
   // sql azure database
@@ -583,9 +589,15 @@ resource profilesdbsrv 'Microsoft.Sql/servers@2022-05-01-preview' = {
   location: resourceLocation
   tags: resourceTags
   properties: {
-    administratorLogin: profilesDbServerAdminLogin
-    administratorLoginPassword: profilesDbServerAdminPassword
     publicNetworkAccess: 'Enabled'
+    administrators: {
+      azureADOnlyAuthentication: true
+      administratorType: 'ActiveDirectory'
+      principalType: 'User'
+      login: 'admin@MngEnvMCAP070665.onmicrosoft.com'
+      sid: 'c0e1990f-ac97-4329-a074-e964d832f3f5'
+      tenantId: 'ed244546-f48e-4572-a767-d6d2a521a7c5'
+    }
   }
 
   // sql azure database
