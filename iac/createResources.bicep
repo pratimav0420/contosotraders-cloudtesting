@@ -864,6 +864,17 @@ resource uistgacc_websiteContributorRole 'Microsoft.Authorization/roleAssignment
   }
 }
 
+// Storage Blob Data Owner role for comprehensive blob access
+resource uistgacc_blobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: uistgacc
+  name: guid(resourceGroup().id, uistgacc_mi.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
+    principalId: uistgacc_mi.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript'
   location: resourceLocation
@@ -878,6 +889,7 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     // we need to ensure we wait for the role assignments to be deployed before trying to access the storage account
     roleAssignment
     uistgacc_websiteContributorRole
+    uistgacc_blobDataOwnerRole
   ]
   properties: {
     azPowerShellVersion: '3.0'
@@ -988,6 +1000,17 @@ resource ui2stgacc_websiteContributorRole 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Storage Blob Data Owner role for comprehensive blob access
+resource ui2stgacc_blobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: ui2stgacc
+  name: guid(resourceGroup().id, ui2stgacc_mi.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
+    principalId: ui2stgacc_mi.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript2'
   location: resourceLocation
@@ -1002,6 +1025,7 @@ resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
     // we need to ensure we wait for the role assignments to be deployed before trying to access the storage account
     roleAssignment2
     ui2stgacc_websiteContributorRole
+    ui2stgacc_blobDataOwnerRole
   ]
   properties: {
     azPowerShellVersion: '3.0'
