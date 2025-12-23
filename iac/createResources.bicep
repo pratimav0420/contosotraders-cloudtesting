@@ -875,6 +875,8 @@ resource uistgacc_blobDataOwnerRole 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+// COMMENTED OUT: Deployment scripts cause stderr output issues in GitHub Actions
+// Static website hosting is now handled manually or via alternate deployment methods
 /*
 resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript'
@@ -1013,6 +1015,8 @@ resource ui2stgacc_blobDataOwnerRole 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
+// COMMENTED OUT: Deployment scripts cause stderr output issues in GitHub Actions
+// Static website hosting is now handled manually or via alternate deployment methods
 /*
 resource deploymentScript2 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'DeploymentScript2'

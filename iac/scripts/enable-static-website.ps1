@@ -26,7 +26,7 @@ try {
     }
 }
 catch {
-    Write-Error "Failed to enable static website: $($_.Exception.Message)"
+    Write-Output "WARNING: Failed to enable static website: $($_.Exception.Message)"
     
     # Fallback: Try alternative Azure CLI approach
     try {
@@ -45,7 +45,7 @@ catch {
         }
     }
     catch {
-        Write-Error "All approaches failed: $($_.Exception.Message)"
+        Write-Output "ERROR: All approaches failed: $($_.Exception.Message)"
         throw
     }
 }

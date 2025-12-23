@@ -422,6 +422,17 @@ jobs:
         env:
           REACT_APP_BINGMAPSKEY: ${{ secrets.BINGMAPSKEY }}
         working-directory: src/ContosoTraders.Ui.Website
+      - name: enable static website hosting
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Enable static website hosting on the storage account
+            az storage blob service-properties update \
+              --account-name '${{ env.UI_STORAGE_ACCOUNT_NAME }}${{ vars.SUFFIX }}' \
+              --static-website \
+              --index-document 'index.html' \
+              --404-document 'index.html' \
+              --auth-mode login
       - name: deploy ui to storage
         uses: azure/CLI@v1
         with:
