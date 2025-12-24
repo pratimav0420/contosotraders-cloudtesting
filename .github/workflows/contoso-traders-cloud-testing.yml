@@ -261,28 +261,73 @@ jobs:
           
           # Create managed identity user and grant permissions
           echo "Setting up managed identity user in products database..."
-          sqlcmd \
-            -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
-            -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G \
-            -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
-            -b
+          
+          # Debug: Check environment right before sqlcmd call
+          echo "Environment check right before sqlcmd:"
+          echo "SQLCMDPASSWORD length in env: ${#SQLCMDPASSWORD}"
+          env | grep SQLCMD || echo "No SQLCMD variables found in environment"
+          
+          # Try alternative approach: use -P with file substitution in a subshell
+          echo "Trying alternative authentication method..."
+          
+          # Method 1: Direct token file approach
+          echo "$ACCESS_TOKEN" > /tmp/direct_token.txt
           
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G \
+            -G -P "$(head -c 127 /tmp/direct_token.txt)" \
+            -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
+            -b || {
+              echo "Direct token method failed, trying environment variable method..."
+              
+              # Clear any existing SQLCMD variables
+              unset SQLCMDPASSWORD SQLCMDUSER SQLCMDSERVER
+              
+              # Set fresh environment variable
+              export SQLCMDPASSWORD="$ACCESS_TOKEN"
+              
+              # Try again with clean environment
+              sqlcmd \
+                -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
+                -d ${{ env.PRODUCTS_DB_NAME }} \
+                -G \
+                -Q "IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '$miName') BEGIN CREATE USER [$miName] FROM EXTERNAL PROVIDER; END" \
+                -b
+            }
+          
+          sqlcmd \
+            -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
+            -d ${{ env.PRODUCTS_DB_NAME }} \
+            -G -P "$(head -c 127 /tmp/direct_token.txt)" \
             -Q "ALTER ROLE db_datareader ADD MEMBER [$miName]; ALTER ROLE db_datawriter ADD MEMBER [$miName]; ALTER ROLE db_ddladmin ADD MEMBER [$miName];" \
-            -b
+            -b || {
+              sqlcmd \
+                -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
+                -d ${{ env.PRODUCTS_DB_NAME }} \
+                -G \
+                -Q "ALTER ROLE db_datareader ADD MEMBER [$miName]; ALTER ROLE db_datawriter ADD MEMBER [$miName]; ALTER ROLE db_ddladmin ADD MEMBER [$miName];" \
+                -b
+            }
           
           # Execute SQL script
           echo "Executing database seed script..."
           sqlcmd \
             -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
             -d ${{ env.PRODUCTS_DB_NAME }} \
-            -G \
+            -G -P "$(head -c 127 /tmp/direct_token.txt)" \
             -i ./src/ContosoTraders.Api.Products/Migration/productsdb.sql \
-            -b
+            -b || {
+              sqlcmd \
+                -S ${{ env.PRODUCTS_DB_SERVER_NAME }}${{ vars.SUFFIX }}.database.windows.net \
+                -d ${{ env.PRODUCTS_DB_NAME }} \
+                -G \
+                -i ./src/ContosoTraders.Api.Products/Migration/productsdb.sql \
+                -b
+            }
+          
+          # Clean up token files
+          rm -f /tmp/direct_token.txt /tmp/sqlcmd_token.txt
           
           # Clear the password from environment
           unset SQLCMDPASSWORD
