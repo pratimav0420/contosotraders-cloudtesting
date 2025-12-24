@@ -240,7 +240,19 @@ jobs:
           # Validate token format (should start with 'ey' for JWT)
           if [[ $ACCESS_TOKEN == ey* ]] && [[ ${#ACCESS_TOKEN} -gt 100 ]]; then
             echo "Valid access token received"
-            export SQLCMDPASSWORD="$ACCESS_TOKEN"
+            
+            # Debug: Show first and last few characters of token
+            echo "Token starts with: ${ACCESS_TOKEN:0:10}..."
+            echo "Token ends with: ...${ACCESS_TOKEN: -10}"
+            
+            # Try writing token to file first to avoid shell issues
+            echo "$ACCESS_TOKEN" > /tmp/sqlcmd_token.txt
+            export SQLCMDPASSWORD="$(cat /tmp/sqlcmd_token.txt)"
+            
+            # Debug: Verify the environment variable was set correctly
+            echo "SQLCMDPASSWORD length: ${#SQLCMDPASSWORD}"
+            echo "SQLCMDPASSWORD starts with: ${SQLCMDPASSWORD:0:10}..."
+            
           else
             echo "Error: Invalid access token received: $ACCESS_TOKEN"
             echo "This usually indicates Azure CLI authentication issues"
@@ -274,6 +286,7 @@ jobs:
           
           # Clear the password from environment
           unset SQLCMDPASSWORD
+          rm -f /tmp/sqlcmd_token.txt
           
           # Clean up: Remove the temporary firewall rule
           echo "Cleaning up temporary firewall rule..."
